@@ -8,7 +8,10 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production --no-optional && npm cache clean --force
+
+# Verify dependencies are installed
+RUN npm list --depth=0
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs
