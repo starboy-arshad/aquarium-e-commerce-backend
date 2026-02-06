@@ -4,7 +4,7 @@
   "description": "Backend server for aquarium shop e-commerce website",
   "main": "server.js",
   "scripts": {
-    "prestart": "npm ci --only=production --no-optional",
+    "prestart": "npm ci --only=production",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
