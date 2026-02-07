@@ -7,7 +7,7 @@ const path = require('path');
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -22,6 +22,13 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
   serverSelectionTimeoutMS: 30000, // 30 seconds
   socketTimeoutMS: 45000, // 45 seconds
+  maxPoolSize: 10, // Maintain up to 10 socket connections
+  serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  bufferMaxEntries: 0, // Disable mongoose buffering
+  bufferCommands: false, // Disable mongoose buffering
+  connectTimeoutMS: 30000, // Give up initial connection after 30 seconds
+  family: 4, // Use IPv4, skip trying IPv6
 })
 .then(() => console.log('MongoDB connected'))
 .catch(err => {
@@ -30,7 +37,12 @@ mongoose.connect(process.env.MONGO_URI, {
     uri: process.env.MONGO_URI,
     error: err
   });
-  process.exit(1);
+  // Don't exit immediately in deployed environment, just log the error
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Continuing without database connection in production mode');
+  } else {
+    process.exit(1);
+  }
 });
 
 // Routes
