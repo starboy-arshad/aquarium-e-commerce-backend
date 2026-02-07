@@ -17,12 +17,21 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/aquarium-shop', {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 30000, // 30 seconds
+  socketTimeoutMS: 45000, // 45 seconds
 })
 .then(() => console.log('MongoDB connected'))
-.catch(err => console.log(err));
+.catch(err => {
+  console.log('MongoDB connection error:', err.message);
+  console.log('Connection details:', {
+    uri: process.env.MONGO_URI,
+    error: err
+  });
+  process.exit(1);
+});
 
 // Routes
 app.get('/', (req, res) => {
