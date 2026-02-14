@@ -21,7 +21,8 @@ mongoose.set('bufferCommands', false); // Disable buffering so we fail fast if D
 
 // MongoDB connection
 console.log('Connecting to MongoDB...');
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/aquarium-shop', {
+const dbUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/aquarium-shop';
+mongoose.connect(dbUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
