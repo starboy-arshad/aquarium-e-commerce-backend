@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const FullMarineSetup = require('../models/FullMarineSetup');
+const { protect, admin } = require('../middleware/auth');
+const upload = require('../middleware/upload');
 
 // @desc    Fetch all full marine setup products
 // @route   GET /api/full-marine-setup
@@ -54,7 +56,7 @@ router.get('/:id', async (req, res) => {
 // @desc    Delete a full marine setup product
 // @route   DELETE /api/full-marine-setup/:id
 // @access  Private/Admin
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, admin, async (req, res) => {
   try {
     const product = await FullMarineSetup.findByIdAndDelete(req.params.id);
 
@@ -71,15 +73,24 @@ router.delete('/:id', async (req, res) => {
 // @desc    Create a full marine setup product
 // @route   POST /api/full-marine-setup
 // @access  Private/Admin
-router.post('/', async (req, res) => {
+router.post('/', protect, admin, upload.single('images'), async (req, res) => {
   try {
-    const { name, price, description, image, stock } = req.body;
+    const { name, price, description, stock } = req.body;
+    
+    let imagePath = req.body.image;
+    if (req.file) {
+      imagePath = `/uploads/${req.file.filename}`;
+    }
+
+    if (!imagePath) {
+      return res.status(400).json({ message: 'Product image is required' });
+    }
 
     const product = new FullMarineSetup({
       name,
       price,
       description,
-      image,
+      image: imagePath,
       stock,
       numReviews: 0,
       rating: 0,
@@ -95,24 +106,28 @@ router.post('/', async (req, res) => {
 // @desc    Update a full marine setup product
 // @route   PUT /api/full-marine-setup/:id
 // @access  Private/Admin
-router.put('/:id', async (req, res) => {
+router.put('/:id', protect, admin, upload.single('images'), async (req, res) => {
   try {
     const {
       name,
       price,
       description,
-      image,
       stock,
     } = req.body;
 
     const product = await FullMarineSetup.findById(req.params.id);
 
     if (product) {
-      product.name = name;
-      product.price = price;
-      product.description = description;
-      product.image = image;
-      product.stock = stock;
+      product.name = name || product.name;
+      product.price = price || product.price;
+      product.description = description || product.description;
+      product.stock = stock || product.stock;
+
+      if (req.file) {
+        product.image = `/uploads/${req.file.filename}`;
+      } else if (req.body.image) {
+        product.image = req.body.image;
+      }
 
       const updatedProduct = await product.save();
       res.json(updatedProduct);
@@ -127,7 +142,7 @@ router.put('/:id', async (req, res) => {
 // @desc    Create new review
 // @route   POST /api/full-marine-setup/:id/reviews
 // @access  Private
-router.post('/:id/reviews', async (req, res) => {
+router.post('/:id/reviews', protect, async (req, res) => {
   try {
     const { rating, comment } = req.body;
 
