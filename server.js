@@ -16,13 +16,21 @@ app.use(express.json());
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// MongoDB configuration
+mongoose.set('bufferCommands', false); // Disable buffering so we fail fast if DB is down
+
 // MongoDB connection
+console.log('Connecting to MongoDB...');
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/aquarium-shop', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
 })
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.log(err));
+  .then(() => console.log('✅ MongoDB connected successfully'))
+  .catch(err => {
+    console.error('❌ MongoDB connection error:', err.message);
+    console.error('Ensure MongoDB is running locally or check your MONGODB_URI in .env');
+  });
 
 // Routes
 app.get('/', (req, res) => {
@@ -59,9 +67,9 @@ app.use('/api/contact', require('./routes/contact'));
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'production' ? {} : err.message 
+    error: process.env.NODE_ENV === 'production' ? {} : err.message
   });
 });
 

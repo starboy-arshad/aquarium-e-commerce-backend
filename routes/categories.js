@@ -4,34 +4,48 @@ const Category = require('../models/Category');
 const upload = require('../middleware/upload');
 const { protect, admin } = require('../middleware/auth');
 
+const mongoose = require('mongoose');
+
 // @desc    Fetch all categories with product count
 // @route   GET /api/categories
 // @access  Public
 router.get('/', async (req, res) => {
+  // Check if DB is connected
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ message: 'Database connection is not ready. Please try again later.' });
+  }
+
   try {
-    const categories = await Category.aggregate([
-      {
-        $lookup: {
-          from: 'products',
-          localField: '_id',
-          foreignField: 'category',
-          as: 'products'
+    let categories;
+    try {
+      categories = await Category.aggregate([
+        {
+          $lookup: {
+            from: 'products',
+            localField: '_id',
+            foreignField: 'category',
+            as: 'products'
+          }
+        },
+        {
+          $addFields: {
+            productCount: { $size: '$products' }
+          }
+        },
+        {
+          $project: {
+            products: 0
+          }
         }
-      },
-      {
-        $addFields: {
-          productCount: { $size: '$products' }
-        }
-      },
-      {
-        $project: {
-          products: 0
-        }
-      }
-    ]);
+      ]);
+    } catch (aggError) {
+      console.error('Aggregation failed, falling back to simple find:', aggError.message);
+      categories = await Category.find({});
+    }
     res.json(categories);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Category GET error:', error.message);
+    res.status(500).json({ message: 'Internal Server Error while fetching categories', error: error.message });
   }
 });
 
